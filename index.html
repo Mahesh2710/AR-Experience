@@ -13,6 +13,7 @@
 
         .a-enter-vr, .a-enter-ar { display: none !important; }
 
+        /* WELCOME SCREEN */
         #welcome-page {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             z-index: 100; background: #1a1a1a url('https://mahesh2710.github.io/ARData/target/blinkit_poster.jpg') center/cover;
@@ -46,6 +47,7 @@
         @keyframes fadeInRight { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
         @keyframes slideUp { to { transform: translateY(0); } }
 
+        /* SCANNER UI */
         #scanner-ui {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             display: none; flex-direction: column; justify-content: center; align-items: center;
@@ -56,6 +58,7 @@
         .scanner-line { position: absolute; width: 100%; height: 4px; background: #a3ff00; top: 0; animation: scan 2s linear infinite; }
         @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
 
+        /* VIDEO STICKY UI */
         #video-container {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
             width: 85%; z-index: 40; display: none; 
@@ -84,10 +87,9 @@
             color: white; text-align: center; padding: 30px;
         }
         #permission-nag h2 { color: #ff3b30; margin-bottom: 10px; }
-        #permission-nag p { margin-bottom: 25px; line-height: 1.5; }
         #permission-nag button { 
             padding: 15px 35px; background: #4185f4; 
-            border: none; border-radius: 30px; color: white; font-weight: bold; font-size: 1rem;
+            border: none; border-radius: 30px; color: white; font-weight: bold;
         }
     </style>
 </head>
@@ -95,7 +97,7 @@
 
     <div id="permission-nag">
         <h2>Camera Blocked</h2>
-        <p>AR requires camera access. Please allow camera permissions in your browser settings and refresh.</p>
+        <p>AR requires camera access. Please enable permissions in your browser settings to continue.</p>
         <button onclick="location.reload()">I've Enabled It - Reload</button>
     </div>
 
@@ -132,7 +134,7 @@
         vr-mode-ui="enabled: false">
         
         <a-assets>
-            <video id="myVideo" src="https://raw.githubusercontent.com/Mahesh2710/ARData/main/video/Gujhiya.mp4" loop="true" crossorigin="anonymous" playsinline webkit-playsinline preload="metadata"></video>
+            <video id="myVideo" src="https://raw.githubusercontent.com/Mahesh2710/ARData/main/video/Gujhiya.mp4" loop="true" crossorigin="anonymous" playsinline webkit-playsinline muted preload="auto"></video>
         </a-assets>
 
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
@@ -157,21 +159,21 @@
 
         let isStickyEnabled = true;
         let hasFoundOnce = false;
-        let isCameraActive = false; // Flag to prevent multiple checks
+        let isCameraActive = false; 
         let nagInterval = null;
 
-        // Function to attempt camera access
+        // --- CAMERA PERMISSION HANDLER ---
         const checkCamera = async () => {
-            if (isCameraActive) return true; // Stop checking if already active
+            if (isCameraActive) return true; 
 
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                // Success! Stop tracks, hide nag, and flip flag
+                // Cleanup test stream immediately
                 stream.getTracks().forEach(track => track.stop());
+                
                 permissionNag.style.display = 'none';
                 isCameraActive = true;
                 
-                // Clear the interval completely so it NEVER runs again
                 if(nagInterval) {
                     clearInterval(nagInterval);
                     nagInterval = null;
@@ -180,37 +182,41 @@
                 sceneEl.systems["mindar-image-system"].start();
                 return true;
             } catch (err) {
-                console.warn("Camera still blocked");
                 permissionNag.style.display = 'flex';
                 return false;
             }
         };
 
-        // Start button logic
+        // --- PLAY BUTTON CLICK ---
         playBtn.addEventListener('click', async () => {
             welcomePage.style.display = 'none';
             scannerUi.style.display = 'flex';
             
+            // iOS VIDEO PRIMING: Unlocks the video for later autoplay
+            video.play().then(() => {
+                video.pause();
+                video.currentTime = 0;
+            }).catch(e => console.log("Priming muted video"));
+
             const ok = await checkCamera();
-            
-            // If denied, start the "Nag" interval
             if (!ok && !nagInterval) {
                 nagInterval = setInterval(checkCamera, 3000);
             }
         });
 
-        // Delay Play Button appearance
         setTimeout(() => {
             playBtn.style.display = 'flex';
             playBtn.style.animation = 'fadeInRight 0.5s ease forwards';
         }, 900);
 
-        // --- AR EVENTS ---
+        // --- AR TARGET EVENTS ---
         document.querySelector('#target-entity').addEventListener('targetFound', () => {
             hasFoundOnce = true;
             scannerUi.style.display = 'none';
             videoContainer.style.display = 'none'; 
             buyNowBtn.style.display = 'block';
+            
+            // Move video to AR entity
             document.querySelector('a-assets').appendChild(video);
             arVideoRenderer.setAttribute('visible', 'true');
             video.play();
