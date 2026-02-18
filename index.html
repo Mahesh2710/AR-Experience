@@ -1,64 +1,58 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Haldiram AR - iOS Optimized</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Haldiram AR Experience</title>
     
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v7.0.0/dist/aframe-extras.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
     
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #000; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; font-family: sans-serif; background: #000; }
         .a-enter-vr, .a-enter-ar { display: none !important; }
 
         /* WELCOME SCREEN */
         #welcome-page {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 100; background: #1a1a1a url('https://mahesh2710.github.io/ARData/target/blinkit_poster.jpg') center/cover;
+            position: fixed; inset: 0; z-index: 100;
+            background: #1a1a1a url('https://mahesh2710.github.io/ARData/target/blinkit_poster.jpg') center/cover;
             display: flex; align-items: flex-end;
         }
 
         #bottom-sheet {
             width: 100%; height: 45%; border-radius: 40px 40px 0 0;
-            position: relative; display: flex; flex-direction: column;
-            overflow: hidden; box-shadow: 0 -15px 35px rgba(0,0,0,0.6);
             background: #121212 url('https://mahesh2710.github.io/ARData/target/welcome.jpg') center/cover;
-            transform: translateY(100%); animation: slideUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+            display: flex; flex-direction: column; justify-content: flex-end;
+            transform: translateY(100%); animation: slideUp 0.8s ease-out forwards;
         }
 
         #sheet-footer {
-            background: rgba(0,0,0,0.9); padding: 25px 30px; display: flex;
-            justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.2);
-            margin-top: auto;
+            background: rgba(0,0,0,0.85); padding: 25px 30px; display: flex;
+            justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.1);
         }
 
         .footer-text h2 { color: white; margin: 0; font-size: 1.2rem; }
-        .footer-text p { color: #aaa; margin: 5px 0 0 0; font-size: 0.85rem; }
+        .footer-text p { color: #bbb; margin: 5px 0 0 0; font-size: 0.8rem; }
 
         #play-button {
             width: 100px; height: 50px; background: #4185f4; border: none;
-            border-radius: 25px; cursor: pointer; display: none;
-            justify-content: center; align-items: center;
-            box-shadow: 0 4px 15px rgba(65, 133, 244, 0.4);
+            border-radius: 25px; cursor: pointer; color: white; font-weight: bold;
         }
-        #play-button span { color: white; font-weight: bold; }
 
         /* SCANNER UI */
         #scanner-ui {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            display: none; flex-direction: column; justify-content: center; align-items: center;
+            position: fixed; inset: 0; display: none;
+            flex-direction: column; justify-content: center; align-items: center;
             z-index: 50; pointer-events: none;
         }
-        .scanner-frame { width: 70vw; height: 70vw; border: 2px solid rgba(255,255,255,0.3); border-radius: 20px; position: relative; }
-        .scanner-line { position: absolute; width: 100%; height: 3px; background: #a3ff00; top: 0; animation: scan 2s linear infinite; box-shadow: 0 0 15px #a3ff00; }
+        .scanner-frame { width: 70vw; height: 70vw; border: 2px solid rgba(255,255,255,0.5); border-radius: 20px; position: relative; }
+        .scanner-line { position: absolute; width: 100%; height: 4px; background: #a3ff00; top: 0; animation: scan 2s linear infinite; box-shadow: 0 0 15px #a3ff00; }
         
         /* STICKY VIDEO & UNMUTE */
-        #video-container {
-            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 85%; z-index: 40; display: none; 
-        }
-        #video-wrapper { position: relative; width: 100%; border-radius: 20px; overflow: visible; box-shadow: 0 20px 50px rgba(0,0,0,0.9); }
+        #video-container { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85%; z-index: 40; display: none; }
+        #video-wrapper { position: relative; width: 100%; border-radius: 20px; box-shadow: 0 20px 50px #000; }
         video { width: 100%; border-radius: 20px; border: 2px solid #fff; display: block; }
 
         #unmute-btn {
@@ -70,7 +64,7 @@
         #close-sticky {
             position: absolute; top: -15px; right: -15px; width: 35px; height: 35px; 
             background: #ff3b30; color: white; border-radius: 50%; border: 2px solid white;
-            font-size: 20px; cursor: pointer; z-index: 100; display: flex; justify-content: center; align-items: center;
+            font-size: 20px; cursor: pointer; display: flex; justify-content: center; align-items: center;
         }
 
         #buy-now-cta {
@@ -81,30 +75,27 @@
 
         @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
         @keyframes slideUp { to { transform: translateY(0); } }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
 <body>
 
-    <button id="unmute-btn">🔊 Unmute</button>
+    <button id="unmute-btn">🔊 Click to Unmute</button>
 
     <div id="welcome-page">
         <div id="bottom-sheet">
             <div id="sheet-footer">
                 <div class="footer-text">
-                    <h2>Haldiram Experience</h2>
-                    <p>Tap Play to start scanning</p>
+                    <h2>Haldiram AR</h2>
+                    <p>Scan product to see magic</p>
                 </div>
-                <button id="play-button"><span>PLAY</span></button>
+                <button id="play-button">PLAY</button>
             </div>
         </div>
     </div>
 
     <div id="scanner-ui">
-        <div class="scanner-frame">
-            <div class="scanner-line"></div>
-        </div>
-        <p style="color:white; margin-top:20px; font-weight:600; text-shadow: 0 2px 4px #000;">POINT CAMERA AT PRODUCT</p>
+        <div class="scanner-frame"><div class="scanner-line"></div></div>
+        <p style="color:white; margin-top:20px; font-weight:bold;">POINT AT THE PRODUCT</p>
     </div>
 
     <div id="video-container">
@@ -138,8 +129,6 @@
         const scannerUi = document.querySelector('#scanner-ui');
         const videoContainer = document.querySelector('#video-container');
         const videoWrapper = document.querySelector('#video-wrapper');
-        const arVideoRenderer = document.querySelector('#ar-video-renderer');
-        const buyNowBtn = document.querySelector('#buy-now-cta');
         const unmuteBtn = document.querySelector('#unmute-btn');
         const sceneEl = document.querySelector('a-scene');
 
@@ -147,23 +136,28 @@
         let isStickyEnabled = true;
         let lostTimeout;
 
-        // Show play button after animation
-        setTimeout(() => { 
-            playBtn.style.display = 'flex'; 
-            playBtn.style.animation = 'fadeIn 0.5s forwards';
-        }, 1000);
+        // 1. FORCED CAMERA PERMISSION FUNCTION
+        async function startAR() {
+            try {
+                // Trigger native browser permission prompt
+                await navigator.mediaDevices.getUserMedia({ video: true });
+                
+                // Prime video for iOS
+                video.play().then(() => { video.pause(); });
 
-        // iOS PRIMING
-        playBtn.addEventListener('click', () => {
-            video.play().then(() => {
-                video.pause(); // Video is now "unlocked" for the session
-            });
-            welcomePage.style.display = 'none';
-            scannerUi.style.display = 'flex';
-            sceneEl.systems["mindar-image-system"].start();
-        });
+                welcomePage.style.display = 'none';
+                scannerUi.style.display = 'flex';
+                
+                // Start AR System
+                sceneEl.systems["mindar-image-system"].start();
+            } catch (err) {
+                console.error(err);
+                alert("Please allow camera access to use the AR feature. Check your browser settings.");
+            }
+        }
 
-        // UNMUTE LOGIC
+        playBtn.addEventListener('click', startAR);
+
         unmuteBtn.addEventListener('click', () => {
             video.muted = false;
             unmuteBtn.style.display = 'none';
@@ -176,25 +170,23 @@
             hasFoundOnce = true;
             scannerUi.style.display = 'none';
             videoContainer.style.display = 'none';
-            buyNowBtn.style.display = 'block';
+            document.querySelector('#buy-now-cta').style.display = 'block';
             unmuteBtn.style.display = video.muted ? 'block' : 'none';
 
             if (video.parentElement !== document.querySelector('a-assets')) {
                 document.querySelector('a-assets').appendChild(video);
             }
-            arVideoRenderer.setAttribute('visible', 'true');
             video.play();
         });
 
         target.addEventListener('targetLost', () => {
             lostTimeout = setTimeout(() => {
                 if (hasFoundOnce && isStickyEnabled) {
-                    arVideoRenderer.setAttribute('visible', 'false');
                     videoContainer.style.display = 'flex';
                     videoWrapper.appendChild(video);
                     video.play();
                 }
-            }, 700); // 700ms buffer to prevent jitter switching
+            }, 700);
         });
 
         document.querySelector('#close-sticky').addEventListener('click', () => {
