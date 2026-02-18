@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>AR Experience</title>
+    <title>Refined AR Experience</title>
     
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v7.0.0/dist/aframe-extras.min.js"></script>
@@ -11,7 +11,6 @@
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
 
-        /* HIDE VR/AR BUTTONS */
         .a-enter-vr, .a-enter-ar { display: none !important; }
 
         /* WELCOME SCREEN */
@@ -22,52 +21,32 @@
         }
 
         #bottom-sheet {
-            width: 100%;
-            height: 50%; 
-            border-radius: 40px 40px 0 0;
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            box-shadow: 0 -15px 35px rgba(0,0,0,0.6);
+            width: 100%; height: 50%; border-radius: 40px 40px 0 0;
+            position: relative; display: flex; flex-direction: column;
+            overflow: hidden; box-shadow: 0 -15px 35px rgba(0,0,0,0.6);
             background: #121212 url('https://mahesh2710.github.io/ARData/target/welcome.jpg') center/cover;
-            transform: translateY(100%);
-            animation: slideUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+            transform: translateY(100%); animation: slideUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
         }
 
         #sheet-content {
-            flex: 1;
-            padding: 40px 30px;
+            flex: 1; padding: 40px 30px;
             background: linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.8) 100%);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
+            display: flex; flex-direction: column; justify-content: center;
         }
 
         #sheet-footer {
-            background: #000;
-            padding: 20px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-top: 2px solid #FFFF;
+            background: #000; padding: 20px 30px; display: flex;
+            justify-content: space-between; align-items: center; border-top: 2px solid #FFFF;
         }
 
         .footer-text h2 { color: white; margin: 0; font-size: 1.2rem; }
         .footer-text p { color: #888; margin: 5px 0 0 0; font-size: 0.9rem; }
 
         #play-button {
-            width: 110px;
-            height: 50px;
-            background: #4185f4;
-            border: none;
-            border-radius: 25px;
-            cursor: pointer;
-            display: none;
-            justify-content: center;
-            align-items: center;
-            box-shadow: 0 4px 15px rgba(65, 133, 244, 0.4);
-            opacity: 0;
+            width: 110px; height: 50px; background: #4185f4; border: none;
+            border-radius: 25px; cursor: pointer; display: none;
+            justify-content: center; align-items: center;
+            box-shadow: 0 4px 15px rgba(65, 133, 244, 0.4); opacity: 0;
         }
 
         @keyframes fadeInRight {
@@ -86,20 +65,22 @@
         .scanner-frame { width: 75vw; height: 75vw; position: relative; display: flex; justify-content: center; align-items: center; }
         .scanner-img { width: 70%; opacity: 0.4; }
         .scanner-line { position: absolute; width: 100%; height: 4px; background: #a3ff00; top: 0; animation: scan 2s linear infinite; }
+        
         @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
         @keyframes slideUp { to { transform: translateY(0); } }
 
-        /* STICKY VIDEO LAYER */
+        /* STICKY VIDEO LAYER - OPTIMIZED FOR MOBILE GPU */
         #video-container {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
             width: 85%; z-index: 40; display: none; 
             flex-direction: column; justify-content: center; align-items: center;
+            will-change: transform;
         }
         #video-wrapper { 
             position: relative; width: 100%; 
             box-shadow: 0 10px 40px rgba(0,0,0,0.8);
             border-radius: 20px;
-            overflow: visible;
+            transform: translateZ(0); /* Force Hardware Acceleration */
         }
         #video-container video { width: 100%; border: 3px solid #FFFF; border-radius: 20px; display: block; }
 
@@ -143,14 +124,21 @@
     <div id="video-container">
         <div id="video-wrapper">
             <button id="close-sticky">×</button>
-            </div>
+        </div>
     </div>
 
     <a href="https://www.haldirams.com/?srsltid=AfmBOorNrebUrW3WH3dQP5O67TGTZZMb5vApY1MI6Vy1td8TluPaNb0i" target="_blank" id="buy-now-cta"></a>
 
     <a-scene 
-        mindar-image="imageTargetSrc: https://raw.githubusercontent.com/Mahesh2710/ARData/main/target/haldiram_new.mind; autoStart: false; uiScanning: #none;" 
-        vr-mode-ui="enabled: false">
+        mindar-image="imageTargetSrc: https://raw.githubusercontent.com/Mahesh2710/ARData/main/target/haldiram_new.mind; 
+                      autoStart: false; 
+                      uiScanning: #none; 
+                      filterMinCF: 0.0001; 
+                      filterBeta: 0.001; 
+                      missTolerance: 5; 
+                      warmupTolerance: 5;" 
+        vr-mode-ui="enabled: false"
+        device-orientation-permission-ui="enabled: false">
         
         <a-assets>
             <video id="myVideo" src="https://raw.githubusercontent.com/Mahesh2710/ARData/main/video/Gujhiya.mp4" loop="true" crossorigin="anonymous" playsinline webkit-playsinline preload="metadata"></video>
@@ -177,8 +165,10 @@
 
         let isStickyEnabled = true;
         let hasFoundOnce = false;
+        let lostTimeout;
+        let isCurrentlyTracking = false;
 
-        // Delay Play Button to match animation
+        // Delay Play Button
         setTimeout(() => {
             playBtn.style.display = 'flex';
             playBtn.style.animation = 'fadeInRight 0.5s ease forwards';
@@ -190,43 +180,55 @@
             sceneEl.systems["mindar-image-system"].start(); 
         });
 
-        document.querySelector('#target-entity').addEventListener('targetFound', () => {
+        const targetEntity = document.querySelector('#target-entity');
+
+        targetEntity.addEventListener('targetFound', () => {
+            clearTimeout(lostTimeout);
+            isCurrentlyTracking = true;
             hasFoundOnce = true;
+            
             scannerUi.style.display = 'none';
-            videoContainer.style.display = 'none'; // Hide sticky if returning to AR
+            videoContainer.style.display = 'none'; 
             buyNowBtn.style.display = 'block';
             
-            // Move video back to AR assets if it was in the sticky container
-            document.querySelector('a-assets').appendChild(video);
-            arVideoRenderer.setAttribute('visible', 'true');
+            // Re-attach video to AR scene if it was moved to sticky
+            if (video.parentElement !== document.querySelector('a-assets')) {
+                document.querySelector('a-assets').appendChild(video);
+            }
             
+            arVideoRenderer.setAttribute('visible', 'true');
             video.play();
         });
 
-        document.querySelector('#target-entity').addEventListener('targetLost', () => {
-            if (hasFoundOnce && isStickyEnabled) {
-                // Hide AR version and show Sticky version
-                arVideoRenderer.setAttribute('visible', 'false');
-                videoContainer.style.display = 'flex';
-                
-                // Move video element into the sticky wrapper
-                videoWrapper.appendChild(video);
-                video.play();
-            }
-            else {
-                video.pause();
-            }
+        targetEntity.addEventListener('targetLost', () => {
+            isCurrentlyTracking = false;
+
+            // Wait 600ms to ensure it's a real loss, not a flicker
+            lostTimeout = setTimeout(() => {
+                if (!isCurrentlyTracking && hasFoundOnce && isStickyEnabled) {
+                    arVideoRenderer.setAttribute('visible', 'false');
+                    videoContainer.style.display = 'flex';
+                    
+                    if (video.parentElement !== videoWrapper) {
+                        videoWrapper.appendChild(video);
+                    }
+                    video.play();
+                } else if (!isCurrentlyTracking) {
+                    video.pause();
+                }
+            }, 600);
         });
 
         closeStickyBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            isStickyEnabled = false; // Disable sticky until found again
+            isStickyEnabled = false; 
             videoContainer.style.display = 'none';
             scannerUi.style.display = 'flex';
             video.pause();
             
-            // Move video back to assets to keep DOM clean
-            document.querySelector('a-assets').appendChild(video);
+            if (video.parentElement !== document.querySelector('a-assets')) {
+                document.querySelector('a-assets').appendChild(video);
+            }
         });
     </script>
 </body>
