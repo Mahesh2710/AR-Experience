@@ -11,10 +11,8 @@
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
 
-        /* HIDE VR/AR BUTTONS */
         .a-enter-vr, .a-enter-ar { display: none !important; }
 
-        /* WELCOME SCREEN */
         #welcome-page {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             z-index: 100; background: #1a1a1a url('https://mahesh2710.github.io/ARData/target/blinkit_poster.jpg') center/cover;
@@ -22,62 +20,32 @@
         }
 
         #bottom-sheet {
-            width: 100%;
-            height: 50%; 
-            border-radius: 40px 40px 0 0;
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
+            width: 100%; height: 50%; border-radius: 40px 40px 0 0;
+            position: relative; display: flex; flex-direction: column; overflow: hidden;
             box-shadow: 0 -15px 35px rgba(0,0,0,0.6);
             background: #121212 url('https://mahesh2710.github.io/ARData/target/welcome.jpg') center/cover;
             transform: translateY(100%);
             animation: slideUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
         }
 
-        #sheet-content {
-            flex: 1;
-            padding: 40px 30px;
-            background: linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.8) 100%);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-
         #sheet-footer {
-            background: #000;
-            padding: 20px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-top: 2px solid #FFFF;
+            background: #000; padding: 20px 30px; display: flex;
+            justify-content: space-between; align-items: center; border-top: 2px solid #FFFF;
         }
 
         .footer-text h2 { color: white; margin: 0; font-size: 1.2rem; }
         .footer-text p { color: #888; margin: 5px 0 0 0; font-size: 0.9rem; }
 
         #play-button {
-            width: 110px;
-            height: 50px;
-            background: #4185f4;
-            border: none;
-            border-radius: 25px;
-            cursor: pointer;
-            display: none;
-            justify-content: center;
-            align-items: center;
-            box-shadow: 0 4px 15px rgba(65, 133, 244, 0.4);
-            opacity: 0;
+            width: 110px; height: 50px; background: #4185f4; border: none;
+            border-radius: 25px; cursor: pointer; display: none;
+            justify-content: center; align-items: center;
+            box-shadow: 0 4px 15px rgba(65, 133, 244, 0.4); opacity: 0;
         }
 
-        @keyframes fadeInRight {
-            from { opacity: 0; transform: translateX(20px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
+        @keyframes fadeInRight { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes slideUp { to { transform: translateY(0); } }
 
-        #play-button span { color: white; font-size: 1.1rem; font-weight: 700; }
-
-        /* SCANNER UI */
         #scanner-ui {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             display: none; flex-direction: column; justify-content: center; align-items: center;
@@ -87,20 +55,12 @@
         .scanner-img { width: 70%; opacity: 0.4; }
         .scanner-line { position: absolute; width: 100%; height: 4px; background: #a3ff00; top: 0; animation: scan 2s linear infinite; }
         @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
-        @keyframes slideUp { to { transform: translateY(0); } }
 
-        /* STICKY VIDEO LAYER */
         #video-container {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
             width: 85%; z-index: 40; display: none; 
-            flex-direction: column; justify-content: center; align-items: center;
         }
-        #video-wrapper { 
-            position: relative; width: 100%; 
-            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
-            border-radius: 20px;
-            overflow: visible;
-        }
+        #video-wrapper { position: relative; width: 100%; box-shadow: 0 10px 40px rgba(0,0,0,0.8); border-radius: 20px; }
         #video-container video { width: 100%; border: 3px solid #FFFF; border-radius: 20px; display: block; }
 
         #close-sticky {
@@ -119,34 +79,34 @@
         /* PERMISSION ERROR OVERLAY */
         #permission-nag {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9); z-index: 200;
+            background: rgba(0,0,0,0.95); z-index: 200;
             display: none; flex-direction: column; justify-content: center; align-items: center;
-            color: white; text-align: center; padding: 20px;
+            color: white; text-align: center; padding: 30px;
         }
-        #permission-nag h2 { color: #ff3b30; }
+        #permission-nag h2 { color: #ff3b30; margin-bottom: 10px; }
+        #permission-nag p { margin-bottom: 25px; line-height: 1.5; }
         #permission-nag button { 
-            margin-top: 20px; padding: 12px 25px; background: #4185f4; 
-            border: none; border-radius: 25px; color: white; font-weight: bold; 
+            padding: 15px 35px; background: #4185f4; 
+            border: none; border-radius: 30px; color: white; font-weight: bold; font-size: 1rem;
         }
     </style>
 </head>
 <body>
 
     <div id="permission-nag">
-        <h2>Camera Access Required</h2>
-        <p>To experience the AR content, please allow camera access in your browser settings.</p>
-        <button onclick="location.reload()">Retry Access</button>
+        <h2>Camera Blocked</h2>
+        <p>AR requires camera access. Please allow camera permissions in your browser settings and refresh.</p>
+        <button onclick="location.reload()">I've Enabled It - Reload</button>
     </div>
 
     <div id="welcome-page">
         <div id="bottom-sheet">
-            <div id="sheet-content"></div>
             <div id="sheet-footer">
                 <div class="footer-text">
                     <h2>Ready to Play?</h2>
                     <p>Unlock the next level experience</p>
                 </div>
-                <button id="play-button"><span>Play</span></button>
+                <button id="play-button"><span style="color:white; font-weight:bold;">Play</span></button>
             </div>
         </div>
     </div>
@@ -156,7 +116,7 @@
             <img src="https://raw.githubusercontent.com/Mahesh2710/ARData/main/target/Haldiram.png" class="scanner-img">
             <div class="scanner-line"></div>
         </div>
-        <div style="color:white; margin-top:20px; font-weight:bold; text-shadow: 0 2px 4px #000;">SCAN THE PRODUCT IMAGE</div>
+        <div style="color:white; margin-top:20px; font-weight:bold;">SCAN THE PRODUCT IMAGE</div>
     </div>
 
     <div id="video-container">
@@ -165,7 +125,7 @@
         </div>
     </div>
 
-    <a href="https://www.haldirams.com/?srsltid=AfmBOorNrebUrW3WH3dQP5O67TGTZZMb5vApY1MI6Vy1td8TluPaNb0i" target="_blank" id="buy-now-cta"></a>
+    <a href="https://www.haldirams.com/" target="_blank" id="buy-now-cta"></a>
 
     <a-scene 
         mindar-image="imageTargetSrc: https://raw.githubusercontent.com/Mahesh2710/ARData/main/target/haldiram_new.mind; autoStart: false; uiScanning: #none;" 
@@ -197,59 +157,60 @@
 
         let isStickyEnabled = true;
         let hasFoundOnce = false;
-        let permissionChecked = false;
+        let isCameraActive = false; // Flag to prevent multiple checks
+        let nagInterval = null;
 
-        // --- CAMERA PERMISSION LOGIC ---
-        // Function to check and trigger camera prompt
-        const requestCamera = async () => {
+        // Function to attempt camera access
+        const checkCamera = async () => {
+            if (isCameraActive) return true; // Stop checking if already active
+
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                // If successful, hide nag screen and stop local stream (MindAR will take over)
-                permissionNag.style.display = 'none';
+                // Success! Stop tracks, hide nag, and flip flag
                 stream.getTracks().forEach(track => track.stop());
+                permissionNag.style.display = 'none';
+                isCameraActive = true;
+                
+                // Clear the interval completely so it NEVER runs again
+                if(nagInterval) {
+                    clearInterval(nagInterval);
+                    nagInterval = null;
+                }
+                
+                sceneEl.systems["mindar-image-system"].start();
                 return true;
             } catch (err) {
-                console.error("Camera access denied", err);
+                console.warn("Camera still blocked");
                 permissionNag.style.display = 'flex';
                 return false;
             }
         };
 
-        // Every 3 seconds, check if permission is granted if the user has tried to start the experience
-        setInterval(async () => {
-            if (welcomePage.style.display === 'none') {
-                const isGranted = await requestCamera();
-                if (isGranted && !permissionChecked) {
-                    permissionChecked = true;
-                    // Start AR system if it wasn't started
-                    sceneEl.systems["mindar-image-system"].start();
-                }
+        // Start button logic
+        playBtn.addEventListener('click', async () => {
+            welcomePage.style.display = 'none';
+            scannerUi.style.display = 'flex';
+            
+            const ok = await checkCamera();
+            
+            // If denied, start the "Nag" interval
+            if (!ok && !nagInterval) {
+                nagInterval = setInterval(checkCamera, 3000);
             }
-        }, 3000);
+        });
 
-        // Delay Play Button to match animation
+        // Delay Play Button appearance
         setTimeout(() => {
             playBtn.style.display = 'flex';
             playBtn.style.animation = 'fadeInRight 0.5s ease forwards';
         }, 900);
 
-        playBtn.addEventListener('click', async () => {
-            welcomePage.style.display = 'none';
-            scannerUi.style.display = 'flex';
-            
-            // Initial attempt
-            const granted = await requestCamera();
-            if (granted) {
-                sceneEl.systems["mindar-image-system"].start(); 
-            }
-        });
-
+        // --- AR EVENTS ---
         document.querySelector('#target-entity').addEventListener('targetFound', () => {
             hasFoundOnce = true;
             scannerUi.style.display = 'none';
             videoContainer.style.display = 'none'; 
             buyNowBtn.style.display = 'block';
-            
             document.querySelector('a-assets').appendChild(video);
             arVideoRenderer.setAttribute('visible', 'true');
             video.play();
@@ -258,7 +219,7 @@
         document.querySelector('#target-entity').addEventListener('targetLost', () => {
             if (hasFoundOnce && isStickyEnabled) {
                 arVideoRenderer.setAttribute('visible', 'false');
-                videoContainer.style.display = 'flex';
+                videoContainer.style.display = 'block';
                 videoWrapper.appendChild(video);
                 video.play();
             } else {
@@ -266,8 +227,7 @@
             }
         });
 
-        closeStickyBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
+        closeStickyBtn.addEventListener('click', () => {
             isStickyEnabled = false; 
             videoContainer.style.display = 'none';
             scannerUi.style.display = 'flex';
