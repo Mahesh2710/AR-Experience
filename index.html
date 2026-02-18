@@ -115,9 +115,28 @@
             width: 280px; height: 70px; display: none; z-index: 60;
             background: url('https://raw.githubusercontent.com/Mahesh2710/ARData/main/target/haldiram-buy-now.png') no-repeat center/contain;
         }
+
+        /* PERMISSION ERROR OVERLAY */
+        #permission-nag {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 200;
+            display: none; flex-direction: column; justify-content: center; align-items: center;
+            color: white; text-align: center; padding: 20px;
+        }
+        #permission-nag h2 { color: #ff3b30; }
+        #permission-nag button { 
+            margin-top: 20px; padding: 12px 25px; background: #4185f4; 
+            border: none; border-radius: 25px; color: white; font-weight: bold; 
+        }
     </style>
 </head>
 <body>
+
+    <div id="permission-nag">
+        <h2>Camera Access Required</h2>
+        <p>To experience the AR content, please allow camera access in your browser settings.</p>
+        <button onclick="location.reload()">Retry Access</button>
+    </div>
 
     <div id="welcome-page">
         <div id="bottom-sheet">
@@ -143,7 +162,7 @@
     <div id="video-container">
         <div id="video-wrapper">
             <button id="close-sticky">×</button>
-            </div>
+        </div>
     </div>
 
     <a href="https://www.haldirams.com/?srsltid=AfmBOorNrebUrW3WH3dQP5O67TGTZZMb5vApY1MI6Vy1td8TluPaNb0i" target="_blank" id="buy-now-cta"></a>
@@ -174,9 +193,39 @@
         const arVideoRenderer = document.querySelector('#ar-video-renderer');
         const closeStickyBtn = document.querySelector('#close-sticky');
         const buyNowBtn = document.querySelector('#buy-now-cta');
+        const permissionNag = document.querySelector('#permission-nag');
 
         let isStickyEnabled = true;
         let hasFoundOnce = false;
+        let permissionChecked = false;
+
+        // --- CAMERA PERMISSION LOGIC ---
+        // Function to check and trigger camera prompt
+        const requestCamera = async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                // If successful, hide nag screen and stop local stream (MindAR will take over)
+                permissionNag.style.display = 'none';
+                stream.getTracks().forEach(track => track.stop());
+                return true;
+            } catch (err) {
+                console.error("Camera access denied", err);
+                permissionNag.style.display = 'flex';
+                return false;
+            }
+        };
+
+        // Every 3 seconds, check if permission is granted if the user has tried to start the experience
+        setInterval(async () => {
+            if (welcomePage.style.display === 'none') {
+                const isGranted = await requestCamera();
+                if (isGranted && !permissionChecked) {
+                    permissionChecked = true;
+                    // Start AR system if it wasn't started
+                    sceneEl.systems["mindar-image-system"].start();
+                }
+            }
+        }, 3000);
 
         // Delay Play Button to match animation
         setTimeout(() => {
@@ -184,48 +233,45 @@
             playBtn.style.animation = 'fadeInRight 0.5s ease forwards';
         }, 900);
 
-        playBtn.addEventListener('click', () => {
+        playBtn.addEventListener('click', async () => {
             welcomePage.style.display = 'none';
             scannerUi.style.display = 'flex';
-            sceneEl.systems["mindar-image-system"].start(); 
+            
+            // Initial attempt
+            const granted = await requestCamera();
+            if (granted) {
+                sceneEl.systems["mindar-image-system"].start(); 
+            }
         });
 
         document.querySelector('#target-entity').addEventListener('targetFound', () => {
             hasFoundOnce = true;
             scannerUi.style.display = 'none';
-            videoContainer.style.display = 'none'; // Hide sticky if returning to AR
+            videoContainer.style.display = 'none'; 
             buyNowBtn.style.display = 'block';
             
-            // Move video back to AR assets if it was in the sticky container
             document.querySelector('a-assets').appendChild(video);
             arVideoRenderer.setAttribute('visible', 'true');
-            
             video.play();
         });
 
         document.querySelector('#target-entity').addEventListener('targetLost', () => {
             if (hasFoundOnce && isStickyEnabled) {
-                // Hide AR version and show Sticky version
                 arVideoRenderer.setAttribute('visible', 'false');
                 videoContainer.style.display = 'flex';
-                
-                // Move video element into the sticky wrapper
                 videoWrapper.appendChild(video);
                 video.play();
-            }
-            else {
+            } else {
                 video.pause();
             }
         });
 
         closeStickyBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            isStickyEnabled = false; // Disable sticky until found again
+            isStickyEnabled = false; 
             videoContainer.style.display = 'none';
             scannerUi.style.display = 'flex';
             video.pause();
-            
-            // Move video back to assets to keep DOM clean
             document.querySelector('a-assets').appendChild(video);
         });
     </script>
