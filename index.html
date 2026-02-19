@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-    <title>Blinkit AR Experience</title>
+    <title>Blinkit AR Experience - Stable</title>
     
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v7.0.0/dist/aframe-extras.min.js"></script>
@@ -121,19 +121,19 @@
     <a href="https://blinkit.com/s/?q=holi" target="_blank" id="buy-now-cta"></a>
 
     <a-scene 
-        mindar-image="imageTargetSrc: https://mahesh2710.github.io/ARData/target/blinkit_new.mind; autoStart: false; uiScanning: #none;" 
+        mindar-image="imageTargetSrc: https://mahesh2710.github.io/ARData/target/blinkit_new.mind; autoStart: false; uiScanning: #none; filterMinCF: 0.0001; filterBeta: 0.001; missTolerance: 10; warmupTolerance: 5;" 
         device-orientation-permission-ui="enabled: false"
-        vr-mode-ui="enabled: false">
+        vr-mode-ui="enabled: false"
+        renderer="antialias: true; colorManagement: true; precision: medium;">
         
         <a-assets>
             <video id="myVideo" src="https://mahesh2710.github.io/ARData/video/Blinkit.mp4" 
-                   loop="true" crossorigin="anonymous" playsinline webkit-playsinline preload="auto"></video>
+                    loop="true" crossorigin="anonymous" playsinline webkit-playsinline preload="auto"></video>
         </a-assets>
 
         <a-camera position="0 0 0" look-controls="enabled: false" wasd-controls-enabled="false"></a-camera>
 
         <a-entity mindar-image-target="targetIndex: 0" id="target-entity">
-            
             <a-text 
                 value="BLINKIT" 
                 align="center" 
@@ -186,7 +186,6 @@
         };
 
         playBtn.addEventListener('click', () => {
-            // Unmute and pre-play for iOS audio support
             video.play().then(() => {
                 video.pause();
                 video.currentTime = 0;
