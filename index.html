@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-    <title>Haldiram AR Experience - Stable</title>
+    <title>Haldiram AR Experience - Optimized</title>
     
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v7.0.0/dist/aframe-extras.min.js"></script>
@@ -142,7 +142,6 @@
                 position="0 1.2 0.2"
                 font="roboto">
             </a-text>
-
             <a-video id="ar-video-renderer" src="#myVideo" width="1.2" height="2.1" position="0 0 0"></a-video>
         </a-entity>
     </a-scene>
@@ -155,24 +154,36 @@
         const videoContainer = document.querySelector('#video-container');
         const videoWrapper = document.querySelector('#video-wrapper');
         const sceneEl = document.querySelector('a-scene');
+        const targetEntity = document.querySelector('#target-entity');
         const arVideoRenderer = document.querySelector('#ar-video-renderer');
         const closeStickyBtn = document.querySelector('#close-sticky');
         const buyNowBtn = document.querySelector('#buy-now-cta');
 
         let isStickyEnabled = true;
         let hasFoundOnce = false;
+        let isTargetFound = false;
         let permissionInterval = null;
 
+        // --- BACKGROUND HANDLING ---
+        document.addEventListener("visibilitychange", () => {
+            if (document.hidden) {
+                video.pause();
+            } else {
+                // Only resume if target is currently visible OR sticky mode is active
+                if (isTargetFound || (hasFoundOnce && isStickyEnabled && videoContainer.style.display === 'flex')) {
+                    video.play().catch(e => console.log("Resume blocked:", e));
+                }
+            }
+        });
+
+        // --- AR LOGIC ---
         setTimeout(() => {
             playBtn.style.display = 'flex';
             playBtn.style.animation = 'fadeInRight 0.5s ease forwards';
         }, 900);
 
         const startARWithPermissionLoop = () => {
-            const startAR = () => {
-                sceneEl.systems["mindar-image-system"].start();
-            };
-
+            const startAR = () => sceneEl.systems["mindar-image-system"].start();
             startAR();
 
             permissionInterval = setInterval(() => {
@@ -189,7 +200,7 @@
             video.play().then(() => {
                 video.pause();
                 video.currentTime = 0;
-            }).catch(e => console.log("Initial interaction catch:", e));
+            }).catch(e => console.log("Interaction check failed:", e));
 
             welcomePage.style.display = 'none';
             scannerUi.style.display = 'flex';
@@ -201,7 +212,8 @@
             }
         });
 
-        document.querySelector('#target-entity').addEventListener('targetFound', () => {
+        targetEntity.addEventListener('targetFound', () => {
+            isTargetFound = true;
             hasFoundOnce = true;
             isStickyEnabled = true;
             scannerUi.style.display = 'none';
@@ -212,7 +224,8 @@
             video.play();
         });
 
-        document.querySelector('#target-entity').addEventListener('targetLost', () => {
+        targetEntity.addEventListener('targetLost', () => {
+            isTargetFound = false;
             if (hasFoundOnce && isStickyEnabled) {
                 arVideoRenderer.setAttribute('visible', 'false');
                 videoContainer.style.display = 'flex';
