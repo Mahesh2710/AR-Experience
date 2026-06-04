@@ -134,11 +134,33 @@
             display: none; flex-direction: column; justify-content: center; align-items: center;
             z-index: 50; pointer-events: none;
         }
-        .scanner-frame { width: 75vw; height: 75vw; position: relative; display: flex; justify-content: center; align-items: center; }
-        .scanner-img   { width: 70%; opacity: 0.6; }
-        .scanner-line  { position: absolute; width: 100%; height: 4px; background: #a3ff00; top: 0; animation: scan 2s linear infinite; }
 
-        /* ─── video-container: visible from AR start ─────────────────────────── */
+
+        /* ─── mute indicator ─────────────────────────────────────────────────── */
+        #mute-overlay {
+            position: absolute; inset: 0; border-radius: 18px;
+            background: rgba(0,0,0,0.45);
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            cursor: pointer; z-index: 10;
+            transition: opacity 0.3s ease;
+        }
+        #mute-overlay .mute-icon {
+            width: 64px; height: 64px; border-radius: 50%;
+            background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.6);
+            display: flex; justify-content: center; align-items: center;
+            animation: mutePulse 1.6s ease-in-out infinite;
+        }
+        #mute-overlay .mute-icon svg { width: 32px; height: 32px; fill: white; }
+        #mute-overlay p {
+            color: white; font-size: 0.85rem; margin: 10px 0 0 0;
+            font-weight: 600; letter-spacing: 0.5px;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+        }
+        @keyframes mutePulse {
+            0%, 100% { transform: scale(1);   opacity: 1;   }
+            50%       { transform: scale(1.1); opacity: 0.7; }
+        }
         #video-container {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
             width: 85%; z-index: 40; display: none;
@@ -172,7 +194,6 @@
         #ar-scene-container video.mindar-video,
         #ar-scene-container video[autoplay] { position: fixed !important; top: 0 !important; left: 0 !important; width: 100% !important; height: 100% !important; object-fit: cover !important; }
 
-        @keyframes scan     { 0% { top: 0; } 100% { top: 100%; } }
         @keyframes slideUp  { to { transform: translateY(0); } }
         @keyframes fadeInRight { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
         @keyframes spin     { to { transform: rotate(360deg); } }
@@ -199,16 +220,21 @@
     </div>
 
     <div id="scanner-ui">
-        <div class="scanner-frame">
-            <img id="dynamic-scanner-img" src="" class="scanner-img">
-            <div class="scanner-line"></div>
-        </div>
-        <div style="color:white; margin-top:20px; font-weight:bold; text-shadow: 0 2px 4px #000;">SCAN THE PRODUCT</div>
+        <div style="color:white; font-weight:bold; font-size:1.1rem; text-shadow: 0 2px 4px #000; letter-spacing:1px;">SCAN THE PRODUCT</div>
     </div>
 
     <div id="video-container">
         <div id="video-wrapper">
             <button id="close-sticky">×</button>
+            <!-- mute indicator — shown only while video is muted at start -->
+            <div id="mute-overlay">
+                <div class="mute-icon">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+                    </svg>
+                </div>
+                <p>Tap to unmute</p>
+            </div>
             <!-- video element will be moved here by JS -->
         </div>
     </div>
@@ -231,7 +257,6 @@
         const playBtn           = document.querySelector('#play-button');
         const welcomePage       = document.querySelector('#welcome-page');
         const scannerUi         = document.querySelector('#scanner-ui');
-        const dynamicScannerImg = document.querySelector('#dynamic-scanner-img');
         const videoContainer    = document.querySelector('#video-container');
         const videoWrapper      = document.querySelector('#video-wrapper');
         const buyNowBtn         = document.querySelector('#buy-now-cta');
@@ -275,7 +300,6 @@
                 window._campaignId   = campaign.id;
                 window._campaignName = campaign.campaignName;
                 campaignTitle.innerText = 'ExpRE';
-                dynamicScannerImg.src   = campaign.scannerImg;
 
                 if (campaign.CTAimgUrl) {
                     buyNowBtn.style.backgroundImage = `url('${campaign.CTAimgUrl}')`;
@@ -377,6 +401,19 @@
             video.load();
             video.play().catch(err => console.warn('[Video autoplay]', err));
 
+            // ── Mute overlay: tap once to unmute, then disappear forever ─────────
+            const muteOverlay = document.querySelector('#mute-overlay');
+            let hasUnmutedOnce = false;
+
+            muteOverlay.addEventListener('click', () => {
+                if (hasUnmutedOnce) return;
+                hasUnmutedOnce  = true;
+                video.muted     = false;
+                muteOverlay.style.opacity  = '0';
+                muteOverlay.style.pointerEvents = 'none';
+                setTimeout(() => { muteOverlay.style.display = 'none'; }, 300);
+            });
+
             // ── Plane sizing helpers ──────────────────────────────────────────────
             function applyPlaneSize(targetW, targetH) {
                 const planeW = 1;
@@ -469,7 +506,11 @@
                 arTextUI.setAttribute('visible',        'true');
                 arTextUI.components['force-front-facing']?.activate();
 
-                // Unmute now that we're inside a user-gesture context (targetFound fires from user interaction)
+                // Unmute: if user already tapped overlay, stay unmuted; otherwise unmute via scan gesture
+                if (!hasUnmutedOnce) {
+                    hasUnmutedOnce = true;
+                    muteOverlay.style.display = 'none';
+                }
                 video.muted = false;
 
                 // Ensure video is playing
