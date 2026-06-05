@@ -71,7 +71,35 @@
             overflow: hidden; font-family: 'Segoe UI', sans-serif; 
             background-color: #000;
         }
-        #loading-overlay {
+        .a-enter-vr, .a-enter-ar { display: none !important; }
+        /* ─── camera permission screen ───────────────────────────────────────── */
+        #camera-permission {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 300;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            gap: 16px; text-align: center; padding: 30px; box-sizing: border-box;
+            cursor: pointer;
+        }
+        #camera-permission .cam-icon {
+            width: 80px; height: 80px; border-radius: 50%;
+            background: rgba(65,133,244,0.15); border: 2px solid #4185f4;
+            display: flex; justify-content: center; align-items: center;
+            animation: mutePulse 1.6s ease-in-out infinite;
+        }
+        #camera-permission .cam-icon svg { width: 40px; height: 40px; fill: #4185f4; }
+        #camera-permission h2 { color: #fff; margin: 0; font-size: 1.3rem; }
+        #camera-permission p  { color: #888; margin: 0; font-size: 0.9rem; line-height: 1.5; }
+        #camera-permission .cam-hint {
+            color: #4185f4; font-size: 0.85rem; font-weight: 600;
+            animation: mutePulse 1.6s ease-in-out infinite;
+        }
+        #camera-permission.denied h2 { color: #ff3b30; }
+        #camera-permission.denied .cam-icon { border-color: #ff3b30; background: rgba(255,59,48,0.1); }
+        #camera-permission.denied .cam-icon svg { fill: #ff3b30; }
+        #camera-permission.denied .cam-hint { color: #ff3b30; }
+
+
             display: none;
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.75); z-index: 150;
@@ -163,6 +191,18 @@
 </head>
 <body>
 
+    <!-- Camera permission screen -->
+    <div id="camera-permission">
+        <div class="cam-icon">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 15.2A3.2 3.2 0 0 1 8.8 12 3.2 3.2 0 0 1 12 8.8 3.2 3.2 0 0 1 15.2 12 3.2 3.2 0 0 1 12 15.2M12 7A5 5 0 0 0 7 12a5 5 0 0 0 5 5 5 5 0 0 0 5-5A5 5 0 0 0 12 7M0 12C0 5.373 5.373 0 12 0s12 5.373 12 12-5.373 12-12 12S0 18.627 0 12m2 0a10 10 0 0 0 10 10A10 10 0 0 0 22 12 10 10 0 0 0 12 2 10 10 0 0 0 2 12"/>
+            </svg>
+        </div>
+        <h2 id="cam-title">Camera Access Needed</h2>
+        <p id="cam-desc">This AR experience needs your camera to detect and overlay content on the product.</p>
+        <div class="cam-hint" id="cam-hint">Tap anywhere to allow camera</div>
+    </div>
+
     <div id="loading-overlay">
         <div class="spinner"></div>
         <p id="loading-msg">Loading AR Experience…</p>
@@ -248,12 +288,42 @@
                 : data.find(item => item.is_active === true);
         })();
 
-        // ── Step 3: Once BOTH are ready, build AR scene + show video ─────────────
+        // ── Camera permission + AR init ───────────────────────────────────────────
+        const camScreen  = document.querySelector('#camera-permission');
+        const camTitle   = document.querySelector('#cam-title');
+        const camDesc    = document.querySelector('#cam-desc');
+        const camHint    = document.querySelector('#cam-hint');
+
+        let cameraGranted  = false;
+        let arInitialized  = false;
+
+        // Try requesting camera — returns true if granted, false if denied/error
+        async function requestCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                // Permission granted — stop the test stream immediately (MindAR opens its own)
+                stream.getTracks().forEach(t => t.stop());
+                return true;
+            } catch (err) {
+                return false;
+            }
+        }
+
+        async function onCameraGranted(campaign) {
+            if (arInitialized) return;
+            arInitialized = true;
+            cameraGranted = true;
+            camScreen.style.display = 'none';
+            document.body.style.backgroundColor            = 'transparent';
+            document.documentElement.style.backgroundColor = 'transparent';
+            buildARScene(campaign);
+        }
+
+        // Step 3: Once scripts + campaign ready, try camera immediately
         Promise.all([arScriptsPromise, campaignPromise])
-            .then(([_, campaign]) => {
+            .then(async ([_, campaign]) => {
                 if (!campaign) { errorScreen.style.display = 'flex'; return; }
 
-                // Apply campaign config
                 window._campaignId   = campaign.id;
                 window._campaignName = campaign.campaignName;
                 dynamicScannerImg.src = campaign.scannerImg;
@@ -262,14 +332,35 @@
                 else if (campaign.CTAredirectUrl) buyNowBtn.href = campaign.CTAredirectUrl;
 
                 window._logEvent?.('ar_session_start', {
-                    campaign_id:   campaign.id,
-                    campaign_name: campaign.campaignName,
+                    campaign_id: campaign.id, campaign_name: campaign.campaignName,
                 });
 
-                document.body.style.backgroundColor            = 'transparent';
-                document.documentElement.style.backgroundColor = 'transparent';
+                // Try camera permission immediately on page load
+                const granted = await requestCamera();
 
-                buildARScene(campaign);
+                if (granted) {
+                    onCameraGranted(campaign);
+                } else {
+                    // Show denied state — tap anywhere to retry
+                    camScreen.classList.add('denied');
+                    camTitle.textContent = 'Camera Access Denied';
+                    camDesc.textContent  = 'Please allow camera access to use this AR experience.';
+                    camHint.textContent  = 'Tap anywhere to try again';
+
+                    // Every tap retries until granted
+                    const retryOnTap = async () => {
+                        if (cameraGranted) return;
+                        camHint.textContent = 'Requesting camera…';
+                        const ok = await requestCamera();
+                        if (ok) {
+                            onCameraGranted(campaign);
+                            document.removeEventListener('click', retryOnTap);
+                        } else {
+                            camHint.textContent = 'Tap anywhere to try again';
+                        }
+                    };
+                    document.addEventListener('click', retryOnTap);
+                }
             })
             .catch(err => {
                 console.error('Init error:', err);
