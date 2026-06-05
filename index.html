@@ -21,6 +21,7 @@
             appId:             "1:592604808354:web:e9cd654980ddcdb49ac3fb",
             measurementId:     "G-3GFGKBQHDQ"
         };
+
         const app       = initializeApp(firebaseConfig);
         const analytics = getAnalytics(app);
 
@@ -62,8 +63,7 @@
     <link rel="dns-prefetch" href="https://raw.githubusercontent.com">
     <link rel="dns-prefetch" href="https://cdn.aframe.io">
 
-    <link rel="preload" as="image" href="https://akm-img-a-in.tosshub.com/app/at-app/dynamic_data/poster/welcomeposter.png" fetchpriority="high">
-    <link rel="preload" as="image" href="https://akm-img-a-in.tosshub.com/app/at-app/dynamic_data/poster/welcome.png">
+
 
     <style>
         body, html { 
@@ -71,46 +71,6 @@
             overflow: hidden; font-family: 'Segoe UI', sans-serif; 
             background-color: #000;
         }
-        #welcome-page {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 100; 
-            background-image: url('https://akm-img-a-in.tosshub.com/app/at-app/dynamic_data/poster/welcomeposter.png');
-            background-size: cover; background-position: center;
-            display: flex; align-items: flex-end;
-        }
-
-        #bottom-sheet {
-            width: 100%; height: 50%; border-radius: 40px 40px 0 0; position: relative;
-            display: flex; flex-direction: column; overflow: hidden;
-            box-shadow: 0 -15px 35px rgba(0,0,0,0.6);
-            transform: translateY(100%);
-            animation: slideUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-        }
-
-        #sheet-content {
-            flex: 1;
-            background-image: url('https://akm-img-a-in.tosshub.com/app/at-app/dynamic_data/poster/welcome.png');
-            background-size: cover;
-            background-repeat: no-repeat;
-            background-position: center top;
-            display: flex; flex-direction: column; justify-content: center;
-        }
-
-        #sheet-footer {
-            background: #000; padding: 20px 30px; display: flex;
-            justify-content: space-between; align-items: center; border-top: 2px solid #FFF;
-        }
-
-        .footer-text h2 { color: white; margin: 0; font-size: 1.2rem; }
-        .footer-text p  { color: #888; margin: 5px 0 0 0; font-size: 0.9rem; }
-
-        #play-button {
-            width: 110px; height: 50px; background: #4185f4; border: none;
-            border-radius: 25px; cursor: pointer; display: none;
-            justify-content: center; align-items: center; color: white; font-weight: bold;
-            box-shadow: 0 4px 15px rgba(65, 133, 244, 0.4);
-        }
-
         #loading-overlay {
             display: none;
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -198,25 +158,10 @@
         #ar-scene-container video[autoplay] { position: fixed !important; top: 0 !important; left: 0 !important; width: 100% !important; height: 100% !important; object-fit: cover !important; }
 
         @keyframes scan     { 0% { top: 0; } 100% { top: 100%; } }
-        @keyframes slideUp  { to { transform: translateY(0); } }
-        @keyframes fadeInRight { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
         @keyframes spin     { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
-
-    <div id="welcome-page">
-        <div id="bottom-sheet">
-            <div id="sheet-content"></div>
-            <div id="sheet-footer">
-                <div class="footer-text">
-                    <h2 id="campaign-title">Checking Campaign...</h2>
-                    <p>Experiencing - Reality</p>
-                </div>
-                <button id="play-button">Play</button>
-            </div>
-        </div>
-    </div>
 
     <div id="loading-overlay">
         <div class="spinner"></div>
@@ -262,22 +207,36 @@
     <script>
         const API_URL = "https://akm-img-a-in.tosshub.com/app/at-app/at_dev/newicons/AR_expierence.json?rnd=" + Math.random() + "#?jnsdk";
 
-        const playBtn           = document.querySelector('#play-button');
-        const welcomePage       = document.querySelector('#welcome-page');
         const scannerUi         = document.querySelector('#scanner-ui');
         const dynamicScannerImg = document.querySelector('#dynamic-scanner-img');
         const videoContainer    = document.querySelector('#video-container');
         const videoWrapper      = document.querySelector('#video-wrapper');
+        const muteOverlay       = document.querySelector('#mute-overlay');
         const buyNowBtn         = document.querySelector('#buy-now-cta');
-        const campaignTitle     = document.querySelector('#campaign-title');
         const errorScreen       = document.querySelector('#error-screen');
         const loadingOverlay    = document.querySelector('#loading-overlay');
         const loadingMsg        = document.querySelector('#loading-msg');
 
-        let campaignData    = null;
         let isStickyEnabled = true;
         let hasFoundOnce    = false;
 
+        // ── Step 1: Load AR scripts eagerly on page load ──────────────────────────
+        function loadScript(src) {
+            return new Promise((resolve, reject) => {
+                if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
+                const s = document.createElement('script');
+                s.src = src; s.onload = resolve; s.onerror = reject;
+                document.head.appendChild(s);
+            });
+        }
+
+        // Start loading AR scripts immediately — no waiting for user
+        const arScriptsPromise = (async () => {
+            await loadScript('https://aframe.io/releases/1.6.0/aframe.min.js');
+            await loadScript('https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js');
+        })();
+
+        // ── Step 2: Load campaign JSON in parallel ────────────────────────────────
         const campaignPromise = (async () => {
             const urlParams = new URLSearchParams(window.location.search);
             const targetId  = urlParams.get('id');
@@ -289,70 +248,35 @@
                 : data.find(item => item.is_active === true);
         })();
 
-        function prefetchARScripts() {
-            [
-                'https://aframe.io/releases/1.6.0/aframe.min.js',
-                'https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js'
-            ].forEach(src => {
-                const link = document.createElement('link');
-                link.rel = 'prefetch'; link.as = 'script'; link.href = src;
-                document.head.appendChild(link);
-            });
-        }
-
-        document.addEventListener('DOMContentLoaded', async () => {
-            try {
-                const campaign = await campaignPromise;
+        // ── Step 3: Once BOTH are ready, build AR scene + show video ─────────────
+        Promise.all([arScriptsPromise, campaignPromise])
+            .then(([_, campaign]) => {
                 if (!campaign) { errorScreen.style.display = 'flex'; return; }
 
-                campaignData = campaign;
+                // Apply campaign config
                 window._campaignId   = campaign.id;
                 window._campaignName = campaign.campaignName;
-                campaignTitle.innerText   = 'ExpRE';
-                dynamicScannerImg.src     = campaign.scannerImg;
+                dynamicScannerImg.src = campaign.scannerImg;
+                if (campaign.CTAimgUrl)       buyNowBtn.style.backgroundImage = `url('${campaign.CTAimgUrl}')`;
+                if (campaign.clickTrackerUrl) buyNowBtn.href = campaign.clickTrackerUrl;
+                else if (campaign.CTAredirectUrl) buyNowBtn.href = campaign.CTAredirectUrl;
 
-                if (campaign.CTAimgUrl) {
-                    buyNowBtn.style.backgroundImage = `url('${campaign.CTAimgUrl}')`;
-                }
-                if (campaign.clickTrackerUrl) {
-                    buyNowBtn.href = campaign.clickTrackerUrl;
-                } else if (campaign.CTAredirectUrl) {
-                    buyNowBtn.href = campaign.CTAredirectUrl;
-                }
+                window._logEvent?.('ar_session_start', {
+                    campaign_id:   campaign.id,
+                    campaign_name: campaign.campaignName,
+                });
 
-                prefetchARScripts();
+                document.body.style.backgroundColor            = 'transparent';
+                document.documentElement.style.backgroundColor = 'transparent';
 
-                setTimeout(() => {
-                    playBtn.style.display   = 'flex';
-                    playBtn.style.animation = 'fadeInRight 0.5s ease forwards';
-                }, 150);
-
-            } catch (err) {
-                console.error("Setup Error:", err);
+                buildARScene(campaign);
+            })
+            .catch(err => {
+                console.error('Init error:', err);
                 errorScreen.style.display = 'flex';
-            }
-        });
-
-        function loadScript(src) {
-            return new Promise((resolve, reject) => {
-                if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
-                const s = document.createElement('script');
-                s.src = src;
-                s.onload = resolve; s.onerror = reject;
-                document.head.appendChild(s);
             });
-        }
 
-        let arScriptsLoaded = false;
-
-        async function ensureARScripts() {
-            if (arScriptsLoaded) return;
-            loadingMsg.textContent = 'Loading AR libraries…';
-            await loadScript('https://aframe.io/releases/1.6.0/aframe.min.js');
-            await loadScript('https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js');
-            arScriptsLoaded = true;
-        }
-
+        // ── buildARScene ──────────────────────────────────────────────────────────
         function buildARScene(campaign) {
 
             AFRAME.registerComponent('force-front-facing', {
@@ -362,8 +286,6 @@
                 tick()       { if (this._active) this.el.object3D.quaternion.set(0, 0, 0, 1); }
             });
 
-            // ── Build scene WITHOUT video in a-assets.
-            //    The <video> element will live in #video-wrapper initially.
             document.querySelector('#ar-scene-container').innerHTML = `
                 <a-scene
                     id="ar-scene"
@@ -372,9 +294,7 @@
                     device-orientation-permission-ui="enabled: false"
                     vr-mode-ui="enabled: false"
                     renderer="antialias: true; colorManagement: true;">
-                    <a-assets timeout="10000">
-                        <!-- video starts here; moved to video-wrapper on AR start, back here on targetFound -->
-                    </a-assets>
+                    <a-assets timeout="10000"></a-assets>
                     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
                     <a-entity mindar-image-target="targetIndex: 0" id="target-entity">
                         <a-text
@@ -394,60 +314,49 @@
             const arTextUI        = document.querySelector('#ar-text-ui');
             const aAssets         = document.querySelector('a-assets');
 
-            // ── Create video element and place it in the floating container ──────
-            const video    = document.createElement('video');
-            video.id       = 'myVideo';
-            video.src      = campaign.videoUrl;
-            video.loop     = true;
-            video.setAttribute('crossorigin', 'anonymous');
-            video.setAttribute('playsinline', '');
-            video.setAttribute('webkit-playsinline', '');
-            video.muted    = true;   // required for autoplay without user gesture
+            // ── Create video, place in floating container, play muted ─────────────
+            const video = document.createElement('video');
+            video.id    = 'myVideo';
+            video.src   = campaign.videoUrl;
+            video.loop  = true;
+            video.muted = true;   // muted for autoplay; user taps overlay to unmute
+            video.setAttribute('crossorigin',       'anonymous');
+            video.setAttribute('playsinline',       '');
+            video.setAttribute('webkit-playsinline','');
             video.style.cssText = 'width:100%; border:3px solid #FFF; border-radius:20px; display:block;';
 
-            // Start video in the floating container immediately
             videoWrapper.appendChild(video);
-            videoContainer.style.display = 'flex';
+            videoContainer.style.display = 'flex';  // show immediately
             video.load();
-            video.play().catch(err => console.warn('[Video autoplay]', err));
+            video.play().catch(e => console.warn('[autoplay]', e));
 
-            // ── Mute overlay: tap once to unmute, then disappear forever ─────────
-            const muteOverlay = document.querySelector('#mute-overlay');
+            // ── Mute overlay: tap once to unmute, never shown again ───────────────
             let hasUnmutedOnce = false;
-
             muteOverlay.addEventListener('click', () => {
                 if (hasUnmutedOnce) return;
-                hasUnmutedOnce  = true;
-                video.muted     = false;
+                hasUnmutedOnce             = true;
+                video.muted                = false;
                 muteOverlay.style.opacity  = '0';
                 muteOverlay.style.pointerEvents = 'none';
                 setTimeout(() => { muteOverlay.style.display = 'none'; }, 300);
             });
 
-            // ── Plane sizing helpers ──────────────────────────────────────────────
-            function applyPlaneSize(targetW, targetH) {
-                const planeW = 1;
-                const planeH = planeW * (targetH / targetW);
-                arVideoRenderer.setAttribute('width',  planeW);
-                arVideoRenderer.setAttribute('height', planeH);
+            // ── Plane sizing ──────────────────────────────────────────────────────
+            function applyPlaneSize(w, h) {
+                const pw = 1, ph = pw * (h / w);
+                arVideoRenderer.setAttribute('width',  pw);
+                arVideoRenderer.setAttribute('height', ph);
             }
-
-            function sizeFromTargetImage() {
-                return new Promise(resolve => {
-                    const img = new Image();
-                    img.crossOrigin = 'anonymous';
-                    img.src = campaign.scannerImg || campaign.targetImageUrl || '';
-                    img.onload  = () => resolve({ w: img.naturalWidth,  h: img.naturalHeight });
-                    img.onerror = () => resolve(null);
-                });
-            }
-
             (async () => {
                 if (campaign.targetImageWidth && campaign.targetImageHeight) {
-                    applyPlaneSize(campaign.targetImageWidth, campaign.targetImageHeight);
-                    return;
+                    applyPlaneSize(campaign.targetImageWidth, campaign.targetImageHeight); return;
                 }
-                const dims = await sizeFromTargetImage();
+                const dims = await new Promise(resolve => {
+                    const img = new Image(); img.crossOrigin = 'anonymous';
+                    img.src = campaign.scannerImg || campaign.targetImageUrl || '';
+                    img.onload  = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+                    img.onerror = () => resolve(null);
+                });
                 if (dims) { applyPlaneSize(dims.w, dims.h); return; }
                 video.addEventListener('loadedmetadata', () => {
                     applyPlaneSize(video.videoWidth, video.videoHeight);
@@ -459,42 +368,33 @@
                 autoStart: false, uiScanning: '#none'
             });
 
-            // ── AR start / camera live ────────────────────────────────────────────
+            // ── AR camera ready ───────────────────────────────────────────────────
             let arStarted = false;
             function startARTracking() {
                 if (arStarted) return;
                 arStarted = true;
                 loadingOverlay.style.display = 'none';
-
-                // Show scanner UI overlay on top of the floating video — no image needed while video plays
-                scannerUi.classList.remove('no-video');
-                scannerUi.style.display = 'flex';
-
+                // No scanner shown here — video container is already visible
                 window._logEvent?.('ar_ready', { campaign_id: campaign.id });
-
                 const arSystem = sceneEl.systems['mindar-image-system'];
                 if (arSystem) arSystem.start();
             }
 
             sceneEl.addEventListener('renderstart', startARTracking, { once: true });
-
             const readyPoll = setInterval(() => {
                 if (sceneEl.hasLoaded || sceneEl.renderStarted) {
-                    clearInterval(readyPoll);
-                    startARTracking();
+                    clearInterval(readyPoll); startARTracking();
                 }
             }, 200);
-
             setTimeout(() => { clearInterval(readyPoll); startARTracking(); }, 3000);
 
-            // ── Analytics state ───────────────────────────────────────────────────
-            const targetEntity     = document.querySelector('#target-entity');
-            let impressionFired    = false;
-            let videoMilestones    = new Set();
-            const pageLoadTime     = Date.now();
-            let arReadyTime        = null;
-            let targetFoundTime    = null;
-
+            // ── Analytics ─────────────────────────────────────────────────────────
+            const targetEntity   = document.querySelector('#target-entity');
+            let impressionFired  = false;
+            let videoMilestones  = new Set();
+            const pageLoadTime   = Date.now();
+            let arReadyTime      = null;
+            let targetFoundTime  = null;
             sceneEl.addEventListener('renderstart', () => { arReadyTime = Date.now(); }, { once: true });
 
             // ── TARGET FOUND ──────────────────────────────────────────────────────
@@ -503,63 +403,52 @@
                 isStickyEnabled = true;
                 targetFoundTime = Date.now();
 
-                // Hide floating container and scanner
+                // Hide floating container
                 videoContainer.style.display = 'none';
                 scannerUi.style.display      = 'none';
                 buyNowBtn.style.display      = 'block';
 
-                // Move video into a-assets so A-Frame can use it as texture
+                // Move video to a-assets for AR texture
                 aAssets.appendChild(video);
-
-                // Show AR plane and text
                 arVideoRenderer.setAttribute('src',     '#myVideo');
                 arVideoRenderer.setAttribute('visible', 'true');
                 arTextUI.setAttribute('visible',        'true');
                 arTextUI.components['force-front-facing']?.activate();
 
-                // Unmute: if user already tapped overlay, stay unmuted; otherwise unmute via scan gesture
+                // Auto-unmute on target found if user hasn't tapped yet
                 if (!hasUnmutedOnce) {
-                    hasUnmutedOnce = true;
+                    hasUnmutedOnce            = true;
                     muteOverlay.style.display = 'none';
                 }
                 video.muted = false;
-
-                // Ensure video is playing
                 if (video.paused) video.play();
 
-                // ── Impression tracker ────────────────────────────────────────────
+                // Impression tracker
                 if (!impressionFired && campaign.impressionTrackerUrl) {
-                    const fireImpression = () => {
+                    const fire = () => {
                         impressionFired = true;
                         const imp = new Image();
                         imp.src = campaign.impressionTrackerUrl.replace('[timestamp]', Date.now()) + '&rnd=' + Math.random();
-                        console.log('[Tracker] Impression fired:', imp.src);
-                        video.removeEventListener('playing', fireImpression);
-
-                        const timeToScan = arReadyTime ? (targetFoundTime - arReadyTime) : null;
-                        const timeToLoad = Date.now() - pageLoadTime;
-
+                        video.removeEventListener('playing', fire);
                         window._logEvent?.('ar_video_play', {
                             campaign_id:     campaign.id,
                             campaign_name:   campaign.campaignName,
-                            time_to_scan_ms: timeToScan,
-                            time_to_load_ms: timeToLoad,
+                            time_to_scan_ms: arReadyTime ? (targetFoundTime - arReadyTime) : null,
+                            time_to_load_ms: Date.now() - pageLoadTime,
                         });
                     };
-                    video.addEventListener('playing', fireImpression);
+                    video.addEventListener('playing', fire);
                 }
 
-                // ── Video progress milestones ─────────────────────────────────────
+                // Progress milestones
                 video.addEventListener('timeupdate', () => {
                     if (!video.duration) return;
                     const pct = (video.currentTime / video.duration) * 100;
-                    for (const milestone of [0, 10, 25, 50, 75, 100]) {
-                        if (pct >= milestone && !videoMilestones.has(milestone)) {
-                            videoMilestones.add(milestone);
+                    for (const m of [0, 10, 25, 50, 75, 100]) {
+                        if (pct >= m && !videoMilestones.has(m)) {
+                            videoMilestones.add(m);
                             window._logEvent?.('ar_video_progress', {
-                                campaign_id:   campaign.id,
-                                campaign_name: campaign.campaignName,
-                                percent:       milestone,
+                                campaign_id: campaign.id, campaign_name: campaign.campaignName, percent: m,
                             });
                         }
                     }
@@ -571,24 +460,20 @@
                 arTextUI.components['force-front-facing']?.deactivate();
 
                 if (hasFoundOnce && isStickyEnabled) {
-                    // Hide AR plane
                     arVideoRenderer.setAttribute('visible', 'false');
                     arTextUI.setAttribute('visible',        'false');
-
-                    // Move video back to floating container — continues playing seamlessly
+                    // Move video back to floating container — seamless continue
                     videoContainer.style.display = 'flex';
                     videoWrapper.appendChild(video);
                     if (video.paused) video.play();
-
                 } else {
                     video.pause();
-                    // video container not shown — show scanner with image so user knows to scan
                     scannerUi.classList.add('no-video');
                     scannerUi.style.display = 'flex';
                 }
             });
 
-            // ── Close sticky player ───────────────────────────────────────────────
+            // ── Close sticky ──────────────────────────────────────────────────────
             document.querySelector('#close-sticky').addEventListener('click', (e) => {
                 e.stopPropagation();
                 isStickyEnabled              = false;
@@ -596,7 +481,6 @@
                 scannerUi.classList.add('no-video');
                 scannerUi.style.display      = 'flex';
                 video.pause();
-                // Return video to a-assets so it's ready if target is found again
                 aAssets.appendChild(video);
             });
 
@@ -604,31 +488,6 @@
                 if (document.hidden) video.pause();
             });
         }
-
-        // ── Play button ───────────────────────────────────────────────────────────
-        playBtn.addEventListener('click', async () => {
-            if (!campaignData) return;
-
-            window._logEvent?.('ar_session_start', {
-                campaign_id:   campaignData.id,
-                campaign_name: campaignData.campaignName,
-            });
-
-            loadingOverlay.style.display = 'flex';
-            loadingMsg.textContent = 'Loading AR Experience…';
-
-            try {
-                await ensureARScripts();
-                document.body.style.backgroundColor            = 'transparent';
-                document.documentElement.style.backgroundColor = 'transparent';
-                welcomePage.style.display = 'none';
-                buildARScene(campaignData);
-            } catch (err) {
-                console.error('AR load error:', err);
-                loadingOverlay.style.display = 'none';
-                errorScreen.style.display    = 'flex';
-            }
-        });
     </script>
 </body>
 </html>
