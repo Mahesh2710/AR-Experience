@@ -72,7 +72,7 @@
             overflow: hidden; font-family: 'Segoe UI', sans-serif; 
             background-color: #000;
         }
-        .a-enter-vr, .a-enter-ar { display: none !important; }
+        #welcome-page { display: none !important; }
 
         #welcome-page {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -608,8 +608,8 @@
             });
         }
 
-        // ── Play button ───────────────────────────────────────────────────────────
-        playBtn.addEventListener('click', async () => {
+        // ── Auto-start: skip welcome page, launch AR directly ────────────────────
+        async function startExperience() {
             if (!campaignData) return;
 
             window._logEvent?.('ar_session_start', {
@@ -617,20 +617,27 @@
                 campaign_name: campaignData.campaignName,
             });
 
-            loadingOverlay.style.display = 'flex';
-            loadingMsg.textContent = 'Loading AR Experience…';
+            welcomePage.style.display            = 'none';
+            loadingOverlay.style.display         = 'flex';
+            loadingMsg.textContent               = 'Loading AR Experience…';
 
             try {
                 await ensureARScripts();
                 document.body.style.backgroundColor            = 'transparent';
                 document.documentElement.style.backgroundColor = 'transparent';
-                welcomePage.style.display = 'none';
                 buildARScene(campaignData);
             } catch (err) {
                 console.error('AR load error:', err);
                 loadingOverlay.style.display = 'none';
                 errorScreen.style.display    = 'flex';
             }
+        }
+
+        // Kick off as soon as campaign data is ready
+        campaignPromise.then(campaign => {
+            if (campaign) startExperience();
+        }).catch(() => {
+            errorScreen.style.display = 'flex';
         });
     </script>
 </body>
